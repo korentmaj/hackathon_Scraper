@@ -1,8 +1,13 @@
 def main():
-    import shutil, os
+    import json
+    import os
+    import shutil
 
     static_src = 'src/static'                 # has index.html, css, js, etc.
-    data_src   = 'data/hackathons.json'       # produced by your scraper step
+    data_candidates = [
+        'data/hackathons.json',               # produced by the scraper step
+        '../scraper_flask/data/hackathons.json'
+    ]
 
     build_dir = 'build'
     data_dir  = os.path.join(build_dir, 'data')
@@ -17,7 +22,17 @@ def main():
 
     # copy data
     os.makedirs(data_dir, exist_ok=True)
-    shutil.copy(data_src, os.path.join(data_dir, 'hackathons.json'))
+    for data_src in data_candidates:
+        try:
+            with open(data_src, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            with open(os.path.join(data_dir, 'hackathons.json'), 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            break
+        except (FileNotFoundError, json.JSONDecodeError):
+            continue
+    else:
+        raise FileNotFoundError('No valid hackathons.json found for static build')
 
     print("Build completed successfully.")
 
