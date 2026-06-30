@@ -65,8 +65,7 @@ const state = {
   visible: [],
   page: 0,
   userLocation: null,
-  loadedFrom: '',
-  mapVisible: false
+  loadedFrom: ''
 };
 
 function $id(id){ return document.getElementById(id); }
@@ -324,7 +323,6 @@ function applyFiltersAndRender(){
   state.visible.sort((a, b) => compareHackathons(a, b, sort, sortDirection));
   state.page = 0;
   renderPage();
-  renderMap();
   updateCounts();
 }
 
@@ -369,142 +367,6 @@ function renderPage(){
   const pageItems = state.visible.slice(start, end);
   renderCards(pageItems, state.page > 0);
   $id('loadMore').style.display = end < state.visible.length ? '' : 'none';
-}
-
-function renderMap(){
-  const panel = $id('mapPanel');
-  const canvas = $id('mapCanvas');
-  const counts = $id('mapCounts');
-
-  panel.classList.toggle('hidden', !state.mapVisible);
-  $id('toggleMap').textContent = state.mapVisible ? 'Hide map' : 'Show map';
-  $id('toggleMap').setAttribute('aria-expanded', String(state.mapVisible));
-  if(!state.mapVisible) return;
-
-  const groups = groupVisibleByCountry();
-  counts.textContent = `${groups.reduce((sum, group) => sum + group.count, 0)} mapped · ${groups.length} locations`;
-  canvas.innerHTML = '';
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 1000 480');
-  svg.setAttribute('class', 'world-map');
-  svg.setAttribute('aria-hidden', 'true');
-
-  svg.appendChild(makeSvgRect(0, 0, 1000, 480, 'map-ocean'));
-  renderMapGrid(svg);
-  renderMapContinents(svg);
-
-  const maxCount = Math.max(1, ...groups.map(group => group.count));
-  groups.forEach(group => {
-    const {x, y} = project(group.country.lat, group.country.lng);
-    const radius = 7 + Math.sqrt(group.count / maxCount) * 26;
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('class', 'map-marker');
-    circle.setAttribute('cx', x);
-    circle.setAttribute('cy', y);
-    circle.setAttribute('r', radius.toFixed(1));
-    circle.setAttribute('tabindex', '0');
-    circle.setAttribute('role', 'button');
-    circle.dataset.country = group.country.name;
-    circle.appendChild(makeSvgTitle(`${group.country.name}: ${group.count} hackathon${group.count === 1 ? '' : 's'}`));
-    circle.addEventListener('click', () => filterByMapCountry(group.country.name));
-    circle.addEventListener('keydown', event => {
-      if(event.key === 'Enter' || event.key === ' ') filterByMapCountry(group.country.name);
-    });
-    svg.appendChild(circle);
-
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    label.setAttribute('class', 'map-label');
-    label.setAttribute('x', x);
-    label.setAttribute('y', y + 4);
-    label.textContent = group.count;
-    svg.appendChild(label);
-  });
-
-  canvas.appendChild(svg);
-}
-
-function groupVisibleByCountry(){
-  const groups = new Map();
-  for(const item of state.visible){
-    if(!item._country || item._country.lat === null || item._country.lng === null) continue;
-    const current = groups.get(item._country.name) || {country: item._country, count: 0};
-    current.count++;
-    groups.set(item._country.name, current);
-  }
-  return [...groups.values()].sort((a, b) => b.count - a.count);
-}
-
-function project(lat, lng){
-  return {
-    x: ((lng + 180) / 360) * 1000,
-    y: ((90 - lat) / 180) * 430 + 25
-  };
-}
-
-function makeSvgRect(x, y, width, height, className){
-  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  rect.setAttribute('x', x);
-  rect.setAttribute('y', y);
-  rect.setAttribute('width', width);
-  rect.setAttribute('height', height);
-  rect.setAttribute('class', className);
-  return rect;
-}
-
-function makeSvgTitle(text){
-  const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-  title.textContent = text;
-  return title;
-}
-
-function renderMapGrid(svg){
-  for(let lng = -120; lng <= 120; lng += 60){
-    const from = project(-70, lng);
-    const to = project(80, lng);
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('class', 'map-grid');
-    line.setAttribute('x1', from.x);
-    line.setAttribute('y1', from.y);
-    line.setAttribute('x2', to.x);
-    line.setAttribute('y2', to.y);
-    svg.appendChild(line);
-  }
-  for(let lat = -60; lat <= 60; lat += 30){
-    const from = project(lat, -180);
-    const to = project(lat, 180);
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('class', 'map-grid');
-    line.setAttribute('x1', from.x);
-    line.setAttribute('y1', from.y);
-    line.setAttribute('x2', to.x);
-    line.setAttribute('y2', to.y);
-    svg.appendChild(line);
-  }
-}
-
-function renderMapContinents(svg){
-  const continents = [
-    'M132 143 C180 92 257 83 314 122 C353 149 356 205 312 230 C260 259 242 318 190 324 C137 330 92 281 86 226 C82 188 102 164 132 143 Z',
-    'M284 306 C331 294 383 330 393 382 C402 430 362 464 322 442 C287 423 270 366 284 306 Z',
-    'M430 120 C512 73 645 88 706 141 C760 187 734 247 660 252 C602 256 581 302 519 292 C457 282 399 230 404 178 C406 153 416 132 430 120 Z',
-    'M507 285 C552 257 615 283 625 340 C635 395 601 443 554 426 C510 410 480 329 507 285 Z',
-    'M671 208 C735 177 815 194 851 250 C879 294 843 343 780 336 C730 330 690 278 671 208 Z',
-    'M781 345 C839 337 893 371 906 414 C919 457 858 468 811 443 C775 424 761 382 781 345 Z',
-    'M461 422 C510 407 573 420 601 448 C544 463 493 463 461 422 Z'
-  ];
-
-  continents.forEach(pathData => {
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('class', 'map-land');
-    path.setAttribute('d', pathData);
-    svg.appendChild(path);
-  });
-}
-
-function filterByMapCountry(countryName){
-  $id('country').value = countryName;
-  applyFiltersAndRender();
 }
 
 function renderCards(items, append = false){
@@ -669,10 +531,6 @@ $id('loadMore').addEventListener('click', () => {
 });
 
 $id('useLocation').addEventListener('click', requestLocation);
-$id('toggleMap').addEventListener('click', () => {
-  state.mapVisible = !state.mapVisible;
-  renderMap();
-});
 $id('resetFilters').addEventListener('click', resetFilters);
 window.addEventListener('scroll', debounce(handleScroll, 20));
 
