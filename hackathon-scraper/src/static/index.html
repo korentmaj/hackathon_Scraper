@@ -32,12 +32,20 @@
         <label class="field">
           <span>Sort</span>
           <select id="sort">
-            <option value="soonest">Soonest</option>
-            <option value="newest">Newest in list</option>
-            <option value="alpha">A → Z</option>
-            <option value="distance">Nearest first</option>
-            <option value="price">Lowest price</option>
-            <option value="participants">Most participants</option>
+            <option value="date">Date</option>
+            <option value="source">List order</option>
+            <option value="alpha">Title</option>
+            <option value="distance">Distance</option>
+            <option value="price">Price</option>
+            <option value="participants">Participants</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Direction</span>
+          <select id="sortDirection">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
           </select>
         </label>
       </div>
@@ -46,6 +54,11 @@
         <label class="field checkbox-field">
           <input id="hidePast" type="checkbox" checked>
           <span>Hide past hackathons</span>
+        </label>
+
+        <label class="field checkbox-field">
+          <input id="hideOnline" type="checkbox">
+          <span>Hide online/global hackathons</span>
         </label>
 
         <label class="field">
@@ -66,6 +79,7 @@
 
       <div class="filter-row filter-row-actions">
         <button id="useLocation" class="btn" type="button">Use my location</button>
+        <button id="toggleMap" class="btn btn-secondary" type="button" aria-expanded="false">Show map</button>
         <button id="resetFilters" class="btn btn-secondary" type="button">Reset filters</button>
         <label class="field checkbox-field compact">
           <input id="includeUnknown" type="checkbox" checked>
@@ -77,6 +91,16 @@
     </section>
 
     <section id="content">
+      <section id="mapPanel" class="map-panel hidden" aria-label="Hackathon map">
+        <div class="map-header">
+          <div>
+            <h2>Map view</h2>
+            <p>Circles are grouped by inferred country. Larger circles mean more visible hackathons.</p>
+          </div>
+          <div id="mapCounts" class="status-pill">—</div>
+        </div>
+        <div id="mapCanvas" class="map-canvas" role="img" aria-label="World map with hackathon circles"></div>
+      </section>
       <div id="status">Loading…</div>
       <div id="grid" class="grid"></div>
       <div class="pager">
